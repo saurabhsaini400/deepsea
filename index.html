@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saurabh Saini — Java Backend Developer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary:       #00e5ff;
+  --primary-dim:   #00b4d8;
+  --primary-deep:  #0077b6;
+  --glow-soft:     rgba(0, 229, 255, 0.25);
+  --glow-mid:      rgba(0, 229, 255, 0.5);
+  --glow-bright:   rgba(0, 229, 255, 0.85);
+  --deep:          #020c14;
+  --abyss:         #010810;
+  --surface:       rgba(0, 30, 55, 0.55);
+  --surface-2:     rgba(0, 20, 40, 0.7);
+  --border:        rgba(0, 229, 255, 0.18);
+  --text-bright:   #e0f8ff;
+  --text-mid:      rgba(180, 240, 255, 0.8);
+  --text-dim:      rgba(120, 210, 240, 0.65);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow-x:hidden;cursor:none;scroll-behavior:smooth}
+body{background:var(--abyss);font-family:'Space Mono',monospace;color:var(--text-bright)}
+
+/* ── Custom Cursor: glowing orb ── */
+#marine-cursor{
+  position:fixed;pointer-events:none;z-index:9999;
+  transform:translate(-50%,-50%);
+  transition:transform 0.08s ease-out;
+}
+.cur-core{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--primary);
+  box-shadow:0 0 6px 3px rgba(0,229,255,0.9),0 0 20px 8px rgba(0,180,220,0.5),0 0 60px 20px rgba(0,130,200,0.2);
+}
+.cur-ring{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:28px;height:28px;border-radius:50%;
+  border:1px solid rgba(0,229,255,0.4);
+  animation:ring-pulse 2s ease-in-out infinite;
+}
+@keyframes ring-pulse{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.5}50%{transform:translate(-50%,-50%) scale(1.4);opacity:0.15}}
+
+.cur-trail{
+  position:fixed;border-radius:50%;pointer-events:none;z-index:9998;
+  animation:trail-dissolve 0.9s ease-out forwards;
+}
+@keyframes trail-dissolve{0%{opacity:0.7;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(0.1)}}
+
+/* ── Canvas / Ocean Scene ── */
+#ocean-canvas{position:relative;width:100%;min-height:100vh;overflow:visible}
+
+#bg-video{
+  position:fixed;top:0;left:0;width:100vw;height:100vh;
+  object-fit:cover;z-index:0;pointer-events:none;
+  filter:brightness(0.85) saturate(1.7)  contrast(1.2);
+}
+
+/* Deep ocean gradient layered over video */
+.ocean-overlay{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0,80,140,0.55) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 20% 60%, rgba(0,50,120,0.35) 0%, transparent 60%),
+    linear-gradient(180deg,
+      rgba(0,10,25,0.3) 0%,
+      rgba(0,5,20,0.75) 50%,
+      rgba(1,8,16,0.97) 100%);
+}
+
+/* Light rays from above */
+.light-rays{
+  position:fixed;top:-10%;left:0;width:100%;height:70%;
+  z-index:2;pointer-events:none;
+  background:
+    repeating-linear-gradient(
+      175deg,
+      transparent 0%, transparent 6%,
+      rgba(0,200,255,0.025) 7%, rgba(0,200,255,0.025) 8%,
+      transparent 9%
+    );
+  animation:rays-move 8s ease-in-out infinite alternate;
+}
+@keyframes rays-move{0%{transform:skewX(-3deg) translateX(-2%)}100%{transform:skewX(3deg) translateX(2%)}}
+
+/* Scanline texture */
+.scanlines{
+  position:fixed;inset:0;z-index:3;pointer-events:none;opacity:0.025;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,229,255,0.1) 2px,rgba(0,229,255,0.1) 4px);
+}
+
+/* ── Bubbles ── */
+.bubbles-container{position:fixed;inset:0;pointer-events:none;z-index:4;overflow:hidden}
+.bubble{
+  position:absolute;border-radius:50%;
+  border:1px solid rgba(0,229,255,0.35);
+  background:radial-gradient(circle at 30% 30%, rgba(0,229,255,0.2), rgba(0,100,180,0.05));
+  box-shadow:inset 0 0 4px rgba(0,229,255,0.2),0 0 6px rgba(0,229,255,0.1);
+  animation:bubble-rise linear infinite;
+}
+@keyframes bubble-rise{
+  0%{transform:translateY(100vh) translateX(0) scale(0.5);opacity:0}
+  10%{opacity:1}
+  90%{opacity:0.6}
+  100%{transform:translateY(-100px) translateX(var(--drift)) scale(1);opacity:0}
+}
+
+/* ── Bioluminescent Particles ── */
+.biolum-container{position:fixed;inset:0;pointer-events:none;z-index:5}
+.bio-dot{
+  position:absolute;border-radius:50%;
+  animation:bio-float ease-in-out infinite;
+  filter:blur(1px);
+}
+@keyframes bio-float{
+  0%,100%{transform:translate(0,0) scale(0.8);opacity:0}
+  20%{opacity:1}
+  50%{transform:translate(var(--mx),var(--my)) scale(1.2);opacity:0.9}
+  80%{opacity:0.4}
+}
+
+/* ── Navigation ── */
+#nav{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;gap:28px;
+  padding:18px 44px;
+  background:transparent;
+  transition:.3s ease;
+}
+#nav.scrolled{
+  background:rgba(1,12,24,0.8);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  box-shadow:0 4px 30px rgba(0,0,0,0.5), 0 0 15px rgba(0,229,255,0.05) inset;
+}
+.nav-logo{
+  margin-right:auto;font-size:13px;font-weight:700;
+  letter-spacing:.22em;color:var(--primary);
+  text-shadow:0 0 12px var(--glow-mid);
+}
+.nav-item{
+  font-size:10px;letter-spacing:.22em;padding:8px 4px;
+  font-weight:700;text-transform:uppercase;
+  color:var(--text-dim);transition:.3s ease;cursor:none;position:relative;
+}
+.nav-item::after{
+  content:'';position:absolute;bottom:0;left:0;width:0;height:1px;
+  background:var(--primary);
+  box-shadow:0 0 6px var(--primary);
+  transition:width 0.3s ease;
+}
+.nav-item:hover{color:var(--primary);text-shadow:0 0 8px var(--glow-mid)}
+.nav-item:hover::after{width:100%}
+
+/* ── Layout ── */
+.section{position:relative;padding:40px 32px;max-width:860px;margin:0 auto;z-index:20}
+.hero-section{min-height:95vh;display:flex;flex-direction:column;justify-content:center;padding:110px 44px 70px}
+
+/* Scroll reveal */
+.reveal{opacity:1;transform:translateY(40px);transition:all 1s cubic-bezier(0.16,1,0.3,1)}
+.reveal.active{opacity:1;transform:translateY(0)}
+
+/* ── Hero Typography ── */
+.hero-eyebrow{
+  font-size:10px;letter-spacing:.3em;color:var(--primary-dim);
+  text-transform:uppercase;margin-bottom:28px;
+  display:flex;align-items:center;gap:16px;
+}
+.hero-eyebrow::before{
+  content:'';display:inline-block;width:40px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--primary-dim));
+}
+.ping-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--primary);
+  box-shadow:0 0 8px var(--primary);
+  animation:ping 2s ease-in-out infinite;display:inline-block;margin-right:6px;
+}
+@keyframes ping{0%,100%{opacity:1;box-shadow:0 0 0 0 var(--glow-mid)}50%{opacity:0.7;box-shadow:0 0 0 8px transparent}}
+
+.hero-name{
+  font-family:'Cormorant Garamond',Georgia,serif;
+  font-size:clamp(58px,9.5vw,108px);font-weight:700;
+  line-height:1.0;color:var(--text-bright);
+  letter-spacing:-0.02em;margin-bottom:18px;
+  text-shadow:0 0 80px rgba(0,229,255,0.15), 0 10px 40px rgba(0,0,0,0.9);
+}
+.hero-name span{
+  color:var(--primary);font-style:italic;
+  text-shadow:0 0 30px var(--glow-mid), 0 0 60px rgba(0,180,255,0.3);
+}
+.hero-title{
+  font-size:12px;color:var(--primary-dim);letter-spacing:.2em;
+  margin-bottom:36px;text-transform:uppercase;
+  height:20px;display:flex;align-items:center;
+}
+.cursor-blink{
+  display:inline-block;width:2px;height:14px;
+  background:var(--primary);margin-left:5px;
+  box-shadow:0 0 6px var(--primary);
+  animation:blink 1s step-end infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+.hero-bio{
+  font-family:'Cormorant Garamond',serif;font-style:italic;
+  font-size:20px;color:var(--text-mid);line-height:1.85;max-width:600px;
+  border-left:2px solid var(--primary);padding-left:24px;
+  background:linear-gradient(90deg,rgba(0,229,255,0.04),transparent);
+  text-shadow:0 4px 16px rgba(0,0,0,0.8);
+}
+
+/* Section labels */
+.s-label{
+  font-size:10px;letter-spacing:.32em;color:var(--primary-dim);
+  text-transform:uppercase;margin-bottom:24px;
+  display:flex;align-items:center;gap:12px;
+}
+.s-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(0,229,255,0.3),transparent)}
+
+h2{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(32px,5vw,50px);font-weight:600;
+  color:var(--text-bright);margin-bottom:44px;line-height:1.2;
+  text-shadow:0 0 40px rgba(0,229,255,0.1);
+}
+
+/* Divider */
+.ocean-divider{
+  display:flex;align-items:center;gap:12px;
+  margin:8px auto;padding:0 40px;max-width:860px;
+}
+.ocean-divider::before,.ocean-divider::after{
+  content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,229,255,0.25),transparent);
+}
+.div-icon{font-size:16px;color:rgba(0,229,255,0.5);text-shadow:0 0 10px var(--glow-soft)}
+
+/* Tech badges */
+.tech-badges{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.badge{
+  font-size:9px;letter-spacing:.15em;padding:7px 14px;
+  border-radius:3px;border:1px solid var(--border);
+  color:var(--text-mid);text-transform:uppercase;
+  background:var(--surface);backdrop-filter:blur(6px);
+  transition:all 0.3s ease;cursor:none;position:relative;overflow:hidden;
+}
+.badge::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(0,229,255,0.08),transparent);
+  opacity:0;transition:opacity 0.3s;
+}
+.badge:hover{
+  background:rgba(0,229,255,0.12);border-color:var(--primary);
+  color:var(--primary);transform:translateY(-2px);
+  box-shadow:0 6px 20px rgba(0,0,0,0.4), 0 0 12px rgba(0,229,255,0.15);
+}
+.badge:hover::before{opacity:1}
+
+/* ── Skill Cards ── */
+.skill-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:16px;margin-bottom:24px}
+.skill-card{
+  background:var(--surface-2);backdrop-filter:blur(14px);
+  border:1px solid var(--border);border-radius:14px;padding:22px;
+  transition:transform 0.12s ease,border-color 0.4s,box-shadow 0.4s;
+  cursor:none;transform-style:preserve-3d;position:relative;overflow:hidden;
+}
+.skill-card::before{
+  content:'';position:absolute;top:-50%;left:-50%;
+  width:200%;height:200%;
+  background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(0,229,255,0.07),transparent 50%);
+  pointer-events:none;opacity:0;transition:opacity 0.4s;
+}
+.skill-card:hover{
+  border-color:rgba(0,229,255,0.5);
+  box-shadow:0 20px 40px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,229,255,0.07),0 0 15px rgba(0,229,255,0.08);
+}
+.skill-card:hover::before{opacity:1}
+.skill-name{font-size:12px;color:var(--primary);letter-spacing:.12em;margin-bottom:14px;font-weight:700}
+.skill-bar{height:2px;background:rgba(0,229,255,0.1);border-radius:4px;overflow:hidden}
+.skill-fill{
+  height:100%;border-radius:4px;
+  background:linear-gradient(90deg,var(--primary-deep),var(--primary));
+  box-shadow:0 0 10px var(--glow-soft);
+  animation:bar-in 1.8s cubic-bezier(0.1,0.8,0.3,1) forwards;
+  transform-origin:left;transform:scaleX(0);
+}
+@keyframes bar-in{to{transform:scaleX(1)}}
+.skill-level{font-size:9px;color:var(--text-dim);letter-spacing:.18em;margin-top:10px;text-transform:uppercase}
+
+/* ── Experience Timeline ── */
+.exp-list{display:flex;flex-direction:column;gap:0}
+.exp-item{display:grid;grid-template-columns:140px 1fr;position:relative}
+.exp-item::before{
+  content:'';position:absolute;left:135px;top:10px;bottom:-10px;width:1px;
+  background:linear-gradient(180deg,var(--primary),rgba(0,229,255,0.05));
+}
+.exp-dot{
+  position:absolute;left:129px;top:8px;width:13px;height:13px;
+  border-radius:50%;background:var(--abyss);
+  border:2px solid var(--primary);
+  box-shadow:0 0 14px var(--glow-mid),0 0 30px rgba(0,229,255,0.2);
+  z-index:2;
+  animation:dot-pulse 3s ease-in-out infinite;
+}
+@keyframes dot-pulse{0%,100%{box-shadow:0 0 14px var(--glow-mid)}50%{box-shadow:0 0 22px var(--glow-bright),0 0 40px rgba(0,229,255,0.3)}}
+.exp-year{
+  font-size:11px;color:var(--primary-dim);letter-spacing:.1em;
+  padding:6px 28px 0 0;text-align:right;font-weight:700;
+}
+.exp-body{padding:0 0 52px 36px}
+.exp-role{font-size:15px;color:var(--text-bright);font-weight:700;letter-spacing:.05em;margin-bottom:6px}
+.exp-company{font-size:10px;color:var(--primary-dim);letter-spacing:.18em;text-transform:uppercase;margin-bottom:14px}
+.exp-desc{
+  font-size:12px;color:var(--text-dim);line-height:1.85;
+  background:var(--surface-2);backdrop-filter:blur(10px);
+  padding:18px 22px;border-radius:12px;
+  border:1px solid rgba(255,255,255,0.04);
+  transition:transform 0.3s,box-shadow 0.3s,border-color 0.3s;
+}
+.exp-desc:hover{
+  transform:translateX(6px);
+  border-color:rgba(0,229,255,0.18);
+  box-shadow:-6px 6px 24px rgba(0,0,0,0.6);
+}
+
+/* ── Projects ── */
+.project-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.proj-card{
+  background:var(--surface-2);backdrop-filter:blur(14px);
+  border:1px solid var(--border);border-radius:18px;padding:30px;
+  position:relative;overflow:hidden;
+  transition:transform 0.12s ease,border-color 0.4s;
+  cursor:none;transform-style:preserve-3d;
+}
+.proj-card::after{
+  content:'';position:absolute;
+  top:-80%;left:-40%;width:80%;height:160%;
+  background:linear-gradient(105deg,transparent,rgba(0,229,255,0.04),transparent);
+  transform:rotate(20deg);
+  transition:left 0.7s ease;
+  pointer-events:none;
+}
+.proj-card:hover::after{left:120%}
+.proj-card:hover{
+  border-color:rgba(0,229,255,0.45);
+  box-shadow:0 24px 48px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,229,255,0.04), 0 0 20px rgba(0,229,255,0.06);
+}
+.proj-num{font-size:10px;color:var(--primary-dim);letter-spacing:.22em;margin-bottom:18px;opacity:0.7}
+.proj-title{
+  font-family:'Cormorant Garamond',serif;font-size:22px;
+  color:var(--text-bright);margin-bottom:12px;font-weight:600;
+}
+.proj-desc{font-size:11px;color:var(--text-dim);line-height:1.8}
+.proj-stack{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.proj-tag{
+  font-size:9px;padding:4px 12px;
+  background:rgba(0,229,255,0.07);
+  border:1px solid rgba(0,229,255,0.2);
+  border-radius:3px;color:var(--primary);letter-spacing:.1em;
+  text-shadow:0 0 6px rgba(0,229,255,0.3);
+}
+
+/* ── Contact ── */
+.contact-block{
+  background:var(--surface-2);backdrop-filter:blur(18px);
+  border:1px solid rgba(0,229,255,0.25);border-radius:22px;
+  padding:64px 44px;text-align:center;
+  position:relative;overflow:hidden;
+}
+.contact-block::before{
+  content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+  background:radial-gradient(circle,rgba(0,229,255,0.04) 0%,transparent 60%);
+  pointer-events:none;
+}
+.contact-block::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--primary-dim),transparent);
+  opacity:0.4;
+}
+.contact-links{display:flex;justify-content:center;gap:36px;flex-wrap:wrap;margin-top:36px;position:relative;z-index:2}
+.c-link{
+  font-size:11px;letter-spacing:.2em;color:var(--text-mid);
+  text-transform:uppercase;border-bottom:1px solid rgba(0,229,255,0.25);
+  padding-bottom:4px;text-decoration:none;transition:all 0.3s ease;cursor:none;
+}
+.c-link:hover{color:var(--primary);border-color:var(--primary);text-shadow:0 0 12px var(--glow-mid);transform:translateY(-2px)}
+.contact-sub{
+  font-family:'Cormorant Garamond',serif;font-style:italic;
+  color:var(--text-dim);margin-top:18px;font-size:18px;
+}
+
+/* ── Jellyfish splash on contact hover ── */
+.jelly-particle{
+  position:fixed;border-radius:50%;pointer-events:none;z-index:9999;
+  background:radial-gradient(circle,var(--primary) 0%,transparent 70%);
+  animation:jelly-burst 2s ease-out forwards;
+}
+@keyframes jelly-burst{
+  0%{opacity:1;transform:translate(0,0) scale(1)}
+  100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0.1)}
+}
+
+/* Ripple on nav hover */
+.nav-ripple{
+  position:fixed;border-radius:50%;pointer-events:none;z-index:9999;
+  border:1px solid rgba(0,229,255,0.5);
+  animation:ripple-out 1.4s ease-out forwards;
+}
+@keyframes ripple-out{
+  0%{width:4px;height:4px;opacity:1;transform:translate(-50%,-50%)}
+  100%{width:80px;height:80px;opacity:0;transform:translate(-50%,-50%)}
+}
+
+@media(max-width:768px){
+  .hero-section{padding:80px 24px 40px}
+  .section{padding:60px 20px}
+  #nav{padding:16px 20px;gap:14px;flex-wrap:wrap;justify-content:center}
+  .nav-logo{margin:0 100% 10px 0}
+  .project-grid{grid-template-columns:1fr}
+  .exp-item{grid-template-columns:80px 1fr}
+  .exp-item::before{left:75px}
+  .exp-dot{left:69px}
+}
+@media(prefers-reduced-motion:reduce){
+  .reveal{transition:none;transform:none;opacity:1}
+  .skill-card,.proj-card{transform:none!important;transition:none!important}
+  .bubble,.bio-dot,.light-rays{animation:none}
+}
+
+#sonar-hud{
+
+position:fixed;
+
+right:40px;
+
+top:50%;
+
+transform:translateY(-50%);
+
+display:flex;
+
+flex-direction:column;
+
+align-items:flex-end;
+
+gap:24px;
+
+z-index:999;
+
+font-family:monospace;
+
+}
+
+.hud-metrics{
+
+text-align:right;
+
+border-right:
+
+2px solid cyan;
+
+padding-right:14px;
+
+margin-bottom:10px;
+
+}
+
+.hud-depth{
+
+font-size:18px;
+
+font-weight:bold;
+
+color:cyan;
+
+text-shadow:
+
+0 0 10px cyan;
+
+min-width:100px;
+
+}
+
+.hud-zone{
+
+font-size:9px;
+
+letter-spacing:.18em;
+
+text-transform:uppercase;
+
+opacity:.7;
+
+margin-top:5px;
+
+}
+
+.hud-node{
+
+width:10px;
+
+height:10px;
+
+border-radius:50%;
+
+border:
+
+1px solid cyan;
+
+background:#021018;
+
+transition:.4s;
+
+box-shadow:
+
+0 0 4px transparent;
+
+}
+
+.hud-node.active-node{
+
+background:cyan;
+
+box-shadow:
+
+0 0 18px cyan;
+
+transform:scale(1.4);
+
+}
+
+@media(max-width:960px){
+
+#sonar-hud{
+
+display:none;
+
+}
+
+}
+</style>
+</head>
+<body>
+    
+    <div id="sonar-hud">
+
+<div class="hud-metrics">
+
+<div class="hud-depth"
+id="hud-depth-val">
+
+0000 M
+
+</div>
+
+<div class="hud-zone"
+id="hud-zone-val">
+
+Epipelagic
+
+</div>
+
+</div>
+
+<div class="hud-node active-node"></div>
+
+<div class="hud-node"></div>
+
+<div class="hud-node"></div>
+
+<div class="hud-node"></div>
+
+<div class="hud-node"></div>
+
+</div>
+
+<!-- Cursor -->
+<div id="marine-cursor"><div class="cur-core"></div><div class="cur-ring"></div></div>
+
+<div id="ocean-canvas">
+
+<!-- Video background -->
+<video autoplay loop muted playsinline id="bg-video">
+  <source src="https://raw.githubusercontent.com/saurabhsaini400/deepsea/main/287469.mp4" type="video/mp4">
+</video>
+<div class="ocean-overlay"></div>
+<div class="light-rays"></div>
+<div class="scanlines"></div>
+
+<!-- Bubbles -->
+<div class="bubbles-container" id="bubble-container"></div>
+
+<!-- Bioluminescent particles -->
+<div class="biolum-container" id="bio-container"></div>
+
+<!-- NAV -->
+<nav id="nav">
+  <span class="nav-logo">⟁ DEEP CURRENT</span>
+  <span class="nav-item" onclick="scrollTo(0,0)">Surface</span>
+  <span class="nav-item" onclick="document.getElementById('sec-skills').scrollIntoView({behavior:'smooth'})">Skills</span>
+  <span class="nav-item" onclick="document.getElementById('sec-exp').scrollIntoView({behavior:'smooth'})">Depth Log</span>
+  <span class="nav-item" onclick="document.getElementById('sec-projects').scrollIntoView({behavior:'smooth'})">Expeditions</span>
+  <span class="nav-item" onclick="document.getElementById('sec-contact').scrollIntoView({behavior:'smooth'})">Sonar</span>
+</nav>
+
+<!-- HERO -->
+<div class="hero-section section reveal" style="z-index:10">
+  <p class="hero-eyebrow"><span class="ping-dot"></span>Available for opportunities</p>
+  <h1 class="hero-name">Saurabh<br><span>Saini</span></h1>
+  <p class="hero-title"><span id="typed-text"></span><span class="cursor-blink"></span></p>
+  <p class="hero-bio">Java Backend Developer with 3.11 years of experience building scalable microservices using Java 8/17, Spring Boot, Kafka, and AWS. Skilled in financial risk systems, high-performance SQL, CI/CD, and production issue resolution.</p>
+  <br>
+  <p class="s-label">Technical keywords i love</p>
+  <div class="tech-badges">
+    <span class="badge">Java 8/17</span><span class="badge">Spring Boot</span><span class="badge">Hibernate</span>
+    <span class="badge">JPA</span><span class="badge">Spring Security</span><span class="badge">System Design</span>
+    <span class="badge">LLD</span><span class="badge">Microservices</span><span class="badge">REST APIs</span>
+    <span class="badge">API Gateway</span><span class="badge">AWS EC2</span><span class="badge">AWS RDS</span>
+    <span class="badge">AWS S3</span><span class="badge">AWS SQS</span><span class="badge">AWS SES</span>
+    <span class="badge">Docker</span><span class="badge">Kubernetes</span><span class="badge">Git</span>
+    <span class="badge">MySQL</span><span class="badge">Oracle</span><span class="badge">Maven</span>
+    <span class="badge">GitHub</span><span class="badge">Agile</span><span class="badge">Scrum</span>
+  </div>
+</div>
+
+<div class="ocean-divider reveal"><span class="div-icon">◈</span></div>
+
+<!-- SKILLS -->
+<div class="section reveal" id="sec-skills">
+  <p class="s-label">Core Skills</p>
+  <h2>Navigating the depths</h2>
+  <div class="skill-grid">
+    <div class="skill-card tilt-el"><div class="skill-name">Java (8 & 17)</div><div class="skill-bar"><div class="skill-fill" style="width:95%"></div></div><div class="skill-level">Expert — 95%</div></div>
+    <div class="skill-card tilt-el"><div class="skill-name">Spring Boot / Hibernate</div><div class="skill-bar"><div class="skill-fill" style="width:92%"></div></div><div class="skill-level">Expert — 92%</div></div>
+    <div class="skill-card tilt-el"><div class="skill-name">Microservices & APIs</div><div class="skill-bar"><div class="skill-fill" style="width:90%"></div></div><div class="skill-level">Advanced — 90%</div></div>
+    <div class="skill-card tilt-el"><div class="skill-name">AWS (EC2, S3, SQS, SES)</div><div class="skill-bar"><div class="skill-fill" style="width:85%"></div></div><div class="skill-level">Advanced — 85%</div></div>
+    <div class="skill-card tilt-el"><div class="skill-name">Apache Kafka</div><div class="skill-bar"><div class="skill-fill" style="width:80%"></div></div><div class="skill-level">Proficient — 80%</div></div>
+    <div class="skill-card tilt-el"><div class="skill-name">SQL (MySQL, Oracle)</div><div class="skill-bar"><div class="skill-fill" style="width:88%"></div></div><div class="skill-level">Advanced — 88%</div></div>
+    <div class="skill-card tilt-el"><div class="skill-name">Docker / Kubernetes</div><div class="skill-bar"><div class="skill-fill" style="width:75%"></div></div><div class="skill-level">Proficient — 75%</div></div>
+    <div class="skill-card tilt-el"><div class="skill-name">CI/CD / Maven / Git</div><div class="skill-bar"><div class="skill-fill" style="width:82%"></div></div><div class="skill-level">Advanced — 82%</div></div>
+  </div>
+</div>
+
+<div class="ocean-divider reveal"><span class="div-icon">◈</span></div>
+
+<!-- EXPERIENCE -->
+<div class="section reveal" id="sec-exp">
+  <p class="s-label">Depth Log</p>
+  <h2>The voyage so far</h2>
+  <div class="exp-list">
+    <div class="exp-item">
+      <div class="exp-dot"></div>
+      <div class="exp-year">Oct 2025 – Now</div>
+      <div class="exp-body">
+        <div class="exp-role">Software Development Engineer (SDE)</div>
+        <div class="exp-company">Indiagold · Remote</div>
+        <div class="exp-desc">Engineered a scalable LTV breach engine using Amazon SQS for async risk tiering and Amazon SES for real-time compliance alerts. Optimized complex native SQL queries improving microservice data throughput, and stabilized Jenkins CI/CD pipelines to support high-frequency releases.</div>
+      </div>
+    </div>
+    <div class="exp-item">
+      <div class="exp-dot"></div>
+      <div class="exp-year">Nov 2023 – Oct 2025</div>
+      <div class="exp-body">
+        <div class="exp-role">Software Engineer</div>
+        <div class="exp-company">Newgen Software · Noida</div>
+        <div class="exp-desc">Migrated legacy systems based on IBPS to Spring Boot and ReactJS, reducing deployment delays by 40%. Secured microservices using ApiGateway and JWT/OAuth2 handling 1,000+ API transactions daily. Built centralized exception handling mechanisms.</div>
+      </div>
+    </div>
+    <div class="exp-item">
+      <div class="exp-dot"></div>
+      <div class="exp-year">Jul 2022 – Nov 2023</div>
+      <div class="exp-body">
+        <div class="exp-role">Associate Engineer</div>
+        <div class="exp-company">Nagarro Software Pvt. Ltd. · Gurugram</div>
+        <div class="exp-desc">Automated Bank Guarantee lifecycle system for Central Bank of India. Built routing using Spring Cloud Gateway and Eureka. Optimized Oracle queries reducing report generation time by 65%, and achieved 85% unit test coverage using JUnit.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ocean-divider reveal"><span class="div-icon">◈</span></div>
+
+<!-- PROJECTS -->
+<div class="section reveal" id="sec-projects">
+  <p class="s-label">Expeditions</p>
+  <h2>Glowing in dark waters</h2>
+  <div class="project-grid">
+    <div class="proj-card tilt-el">
+      <div class="proj-num">01 ——</div>
+      <div class="proj-title">Trustly Payment Integration</div>
+      <div class="proj-desc">Implemented Trustly payment gateway for a European E-commerce Platform using Java 8 and Spring Boot. Developed REST APIs with Swagger and HMAC-based security.</div>
+      <div class="proj-stack"><span class="proj-tag">Java 8</span><span class="proj-tag">Spring Boot</span><span class="proj-tag">REST APIs</span></div>
+    </div>
+    <div class="proj-card tilt-el">
+      <div class="proj-num">02 ——</div>
+      <div class="proj-title">LTV Breach Risk Engine</div>
+      <div class="proj-desc">Developed a scalable, real-time risk dashboard and LTV breach engine utilizing Amazon SQS and SES, drastically improving credit monitoring and compliance.</div>
+      <div class="proj-stack"><span class="proj-tag">AWS SQS/SES</span><span class="proj-tag">Microservices</span><span class="proj-tag">Java 17</span></div>
+    </div>
+    <div class="proj-card tilt-el">
+      <div class="proj-num">03 ——</div>
+      <div class="proj-title">AWS S3 File Retrieval Service</div>
+      <div class="proj-desc">Built a Spring Boot backend utility to securely download, manage, and process high-volume file transfers directly from Amazon S3 buckets.</div>
+      <div class="proj-stack"><span class="proj-tag">AWS S3</span><span class="proj-tag">Spring Boot</span><span class="proj-tag">Java</span></div>
+    </div>
+    <div class="proj-card tilt-el">
+      <div class="proj-num">04 ——</div>
+      <div class="proj-title">Bank Guarantee Lifecycle</div>
+      <div class="proj-desc">Automated lifecycle system built for the Central Bank of India featuring routing via Spring Cloud Gateway/Eureka and heavily optimized Oracle database queries.</div>
+      <div class="proj-stack"><span class="proj-tag">Spring Cloud</span><span class="proj-tag">Oracle</span><span class="proj-tag">JUnit</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="ocean-divider reveal"><span class="div-icon">◈</span></div>
+
+<!-- CONTACT -->
+<div class="section reveal" id="sec-contact">
+  <div class="contact-block tilt-el" id="contact-block">
+    <p class="s-label" style="justify-content:center;margin-bottom:18px">Sonar Ping</p>
+    <h2 style="margin-bottom:0">Transmit from the deep</h2>
+    <p class="contact-sub">Noida, Uttar Pradesh</p>
+    <div class="contact-links">
+      <a href="mailto:saurabhsaini400@gmail.com" class="c-link">saurabhsaini400@gmail.com</a>
+      <a href="tel:+918218456636" class="c-link">+91 8218456636</a>
+      <a href="#" class="c-link">LinkedIn ↗</a>
+      <a href="#" class="c-link">LeetCode ↗</a>
+    </div>
+  </div>
+</div>
+<div style="height:120px"></div>
+
+</div><!-- /ocean-canvas -->
+
+<script>
+/* ── 1. Custom Cursor ── */
+const cur = document.getElementById('marine-cursor');
+let mx=200,my=200,cx=200,cy=200,vx=0,vy=0;
+document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; spawnTrail(e.clientX,e.clientY); });
+function animCursor(){
+  vx+=(mx-cx)*0.16; vy+=(my-cy)*0.16; vx*=0.78; vy*=0.78; cx+=vx; cy+=vy;
+  cur.style.left=cx+'px'; cur.style.top=cy+'px';
+  const spd=Math.sqrt(vx*vx+vy*vy);
+  cur.style.transform=`translate(-50%,-50%) scale(${1+spd*0.025})`;
+  requestAnimationFrame(animCursor);
+}
+animCursor();
+
+function spawnTrail(x,y){
+  if(Math.random()>0.4) return;
+  const d=document.createElement('div');
+  d.className='cur-trail';
+  const sz=2+Math.random()*4;
+  const blues=['#00e5ff','#00b4d8','#90e0ef','#48cae4','#00f5ff'];
+  const c=blues[Math.floor(Math.random()*blues.length)];
+  d.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;background:${c};box-shadow:0 0 ${sz*2}px ${c};`;
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(),900);
+}
+document.addEventListener('click',e=>{
+  for(let i=0;i<14;i++){
+    const d=document.createElement('div');d.className='cur-trail';
+    const sz=3+Math.random()*5;
+    const blues=['#00e5ff','#90e0ef','#00b4d8','#48cae4','#caf0f8'];
+    const c=blues[Math.floor(Math.random()*blues.length)];
+    const a=Math.random()*Math.PI*2;const r=15+Math.random()*70;
+    d.style.cssText=`left:${e.clientX+Math.cos(a)*r}px;top:${e.clientY+Math.sin(a)*r}px;width:${sz}px;height:${sz}px;background:${c};box-shadow:0 0 ${sz*3}px ${c};animation-duration:1.2s`;
+    document.body.appendChild(d);setTimeout(()=>d.remove(),1200);
+  }
+});
+
+/* ── 2. Bubble Generator ── */
+const bc=document.getElementById('bubble-container');
+function spawnBubble(){
+  const b=document.createElement('div'); b.className='bubble';
+  const sz=4+Math.random()*18;
+  const x=Math.random()*window.innerWidth;
+  const dur=6+Math.random()*14;
+  const drift=((Math.random()-0.5)*80)+'px';
+  b.style.cssText=`left:${x}px;bottom:-20px;width:${sz}px;height:${sz}px;--drift:${drift};animation-duration:${dur}s;animation-delay:${Math.random()*4}s`;
+  bc.appendChild(b);
+  setTimeout(()=>b.remove(),(dur+5)*1000);
+}
+for(let i=0;i<35;i++) spawnBubble();
+setInterval(spawnBubble,700);
+
+/* ── 3. Bioluminescent Particles ── */
+const bic=document.getElementById('bio-container');
+const bioColors=['#00e5ff','#00ffcc','#00b4d8','#90e0ef','#48cae4','#7bf1ff'];
+function spawnBio(){
+  const el=document.createElement('div'); el.className='bio-dot';
+  const x=Math.random()*window.innerWidth;
+  const y=50+Math.random()*window.innerHeight*0.9;
+  const sz=1.5+Math.random()*3.5;
+  const c=bioColors[Math.floor(Math.random()*bioColors.length)];
+  const dur=6+Math.random()*12;
+  const mx=((Math.random()-0.5)*160)+'px'; const my=(-60-Math.random()*120)+'px';
+  el.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;background:${c};box-shadow:0 0 ${sz*4}px ${c},0 0 ${sz*8}px ${c}55;--mx:${mx};--my:${my};animation-duration:${dur}s;animation-delay:${Math.random()*3}s`;
+  bic.appendChild(el);
+  setTimeout(()=>el.remove(),(dur+4)*1000);
+}
+for(let i=0;i<60;i++) spawnBio();
+setInterval(spawnBio,400);
+
+/* ── 4. Scroll Reveal ── */
+function reveal(){
+  document.querySelectorAll('.reveal').forEach(el=>{
+    if(el.getBoundingClientRect().top < window.innerHeight-100){
+      el.classList.add('active');
+      el.querySelectorAll('.skill-fill').forEach(b=>{b.style.animation='none';b.offsetHeight;b.style.animation=null;});
+    }
+  });
+}
+window.addEventListener('scroll',reveal); reveal();
+
+/* ── 5. Nav scroll style ── */
+window.addEventListener('scroll',()=>{
+  document.getElementById('nav').classList.toggle('scrolled',window.scrollY>60);
+});
+
+/* ── 6. 3D Tilt on cards ── */
+document.querySelectorAll('.tilt-el').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    const r=el.getBoundingClientRect();
+    const dx=((e.clientX-r.left)/r.width-0.5)*12;
+    const dy=((e.clientY-r.top)/r.height-0.5)*12;
+    el.style.transform=`perspective(1000px) rotateY(${dx}deg) rotateX(${-dy}deg) translateY(-4px)`;
+    if(el.classList.contains('skill-card')){
+      el.style.setProperty('--mx',((e.clientX-r.left)/r.width*100)+'%');
+      el.style.setProperty('--my',((e.clientY-r.top)/r.height*100)+'%');
+    }
+  });
+  el.addEventListener('mouseleave',()=>{el.style.transform='perspective(1000px) rotateY(0) rotateX(0) translateY(0)';});
+});
+
+/* ── 7. Nav ripple on hover ── */
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('mouseenter',e=>{
+    const rect=e.target.getBoundingClientRect();
+    for(let i=0;i<3;i++){
+      setTimeout(()=>{
+        const r=document.createElement('div'); r.className='nav-ripple';
+        r.style.cssText=`left:${rect.left+rect.width/2}px;top:${rect.top+rect.height/2}px;animation-delay:${i*0.25}s`;
+        document.body.appendChild(r);setTimeout(()=>r.remove(),1600);
+      },i*180);
+    }
+  });
+});
+
+/* ── 8. Jellyfish burst on contact hover ── */
+const cb=document.getElementById('contact-block');
+if(cb){
+  cb.addEventListener('mouseenter',()=>{
+    const rect=cb.getBoundingClientRect();
+    for(let i=0;i<55;i++){
+      const f=document.createElement('div'); f.className='jelly-particle';
+      const x=rect.left+Math.random()*rect.width;
+      const y=rect.top+Math.random()*rect.height;
+      const a=Math.random()*Math.PI*2; const dist=60+Math.random()*200;
+      const sz=2+Math.random()*7;
+      f.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;--tx:${Math.cos(a)*dist}px;--ty:${Math.sin(a)*dist}px;animation-delay:${Math.random()*0.4}s`;
+      document.body.appendChild(f);setTimeout(()=>f.remove(),2200);
+    }
+  });
+}
+
+/* ── 9. Typing Effect ── */
+const typedEl=document.getElementById('typed-text');
+const texts=["Java Backend Developer","Microservices Engineer","AWS Cloud Developer","Financial Risk Systems Expert"];
+let tIdx=0,cIdx=0;
+const td=100,ed=50,nd=2000;
+function type(){
+  if(cIdx<texts[tIdx].length){typedEl.textContent+=texts[tIdx][cIdx++];setTimeout(type,td);}
+  else setTimeout(erase,nd);
+}
+function erase(){
+  if(cIdx>0){typedEl.textContent=texts[tIdx].substring(0,--cIdx);setTimeout(erase,ed);}
+  else{tIdx=(tIdx+1)%texts.length;setTimeout(type,td+500);}
+}
+setTimeout(type,nd);
+
+function updateHUD(){
+    
+    
+
+const scrollTop =
+window.pageYOffset ||
+document.documentElement.scrollTop;
+
+const maxScroll =
+Math.max(
+document.body.scrollHeight,
+document.documentElement.scrollHeight
+) - window.innerHeight;
+
+const pct =
+Math.max(
+0,
+Math.min(
+scrollTop / maxScroll,
+1
+)
+);
+
+const depth =
+Math.floor(
+pct * 1500
+);
+
+depthVal.textContent =
+String(depth)
+.padStart(4,"0") + " M";
+
+let zone="Surface";
+
+if(depth>=300) zone="Sunlight";
+if(depth>=600) zone="Twilight";
+if(depth>=1000) zone="Midnight";
+if(depth>=1300) zone="Abyss";
+
+zoneVal.textContent=zone;
+
+const activeCount =
+Math.ceil(
+pct * nodes.length
+);
+
+nodes.forEach((node,index)=>{
+
+node.classList.toggle(
+"active-node",
+index < activeCount
+);
+
+});
+
+}
+
+window.addEventListener(
+"scroll",
+updateHUD,
+{ passive:true }
+);
+
+window.addEventListener(
+"resize",
+updateHUD
+);
+
+window.addEventListener(
+"load",
+updateHUD
+);
+
+updateHUD();
+
+</script>
+</body>
+</html>
